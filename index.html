@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Paint Splash Demo</title>
+<style>
+  body {
+    margin: 0;
+    background: #ddd;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    background: #f3f0ea;
+  }
+
+  #saveButton {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<button id="saveButton">save</button>
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+const drips = [];
+
+function rand(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function drawSplash(x, y, color) {
+  // 中央の大きなシミ
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, rand(18, 35), 0, Math.PI * 2);
+  ctx.fill();
+
+  // 周囲の飛沫
+  const count = Math.floor(rand(12, 25));
+  for (let i = 0; i < count; i++) {
+    const angle = rand(0, Math.PI * 2);
+    const dist = rand(10, 60);
+    const r = rand(2, 8);
+    const px = x + Math.cos(angle) * dist;
+    const py = y + Math.sin(angle) * dist;
+
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 少しいびつなシミを追加
+  for (let i = 0; i < 4; i++) {
+    const ox = rand(-20, 20);
+    const oy = rand(-10, 15);
+    ctx.beginPath();
+    ctx.ellipse(
+      x + ox,
+      y + oy,
+      rand(8, 18),
+      rand(5, 12),
+      rand(0, Math.PI),
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  }
+
+  // 垂れを生成
+  const dripCount = Math.floor(rand(2, 6));
+  for (let i = 0; i < dripCount; i++) {
+    drips.push({
+      x: x + rand(-18, 18),
+      y: y + rand(8, 20),
+      vx: rand(-0.15, 0.15),
+      vy: rand(0.4, 1.2),
+      width: rand(2, 6),
+      life: rand(40, 140),
+      color: color,
+      prevX: x,
+      prevY: y
+    });
+  }
+}
+
+function updateDrips() {
+  for (let i = drips.length - 1; i >= 0; i--) {
+    const d = drips[i];
+
+    d.prevX = d.x;
+    d.prevY = d.y;
+
+    d.vy += 0.03;        // 重力
+    d.x += d.vx;
+    d.y += d.vy;
+    d.life -= 1;
+
+    // 垂れ跡
+    ctx.strokeStyle = d.color;
+    ctx.lineWidth = d.width;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(d.prevX, d.prevY);
+    ctx.lineTo(d.x, d.y);
+    ctx.stroke();
+
+    // 先端の雫
+    ctx.fillStyle = d.color;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.width * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // だんだん細くする
+    d.width *= 0.995;
+
+    if (d.life <= 0 || d.y > canvas.height) {
+      drips.splice(i, 1);
+    }
+  }
+}
+
+function loop() {
+  // 背景を毎回消さないことで、壁にペンキが残る
+  updateDrips();
+  requestAnimationFrame(loop);
+}
+loop();
+
+const colors = [
+  "rgba(255, 80, 80, 0.85)",
+  "rgba(80, 140, 255, 0.85)",
+  "rgba(255, 200, 50, 0.85)",
+  "rgba(80, 200, 120, 0.85)",
+  "rgba(180, 90, 220, 0.85)"
+];
+
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  drawSplash(x, y, color);
+});
+
+function getTimestamp() {
+  const now = new Date();
+
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mi = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+
+  return `${yyyy}${mm}${dd}_${hh}${mi}${ss}`;
+}
+
+function saveCanvas() {
+  const timestamp = getTimestamp();
+  const filename = `paint_wall_${timestamp}.png`;
+
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+document.getElementById("saveButton").addEventListener("click", saveCanvas);
+
+</script>
+</body>
+</html>
