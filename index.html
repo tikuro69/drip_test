@@ -15,23 +15,187 @@
     background: #f3f0ea;
   }
 
-  #saveButton {
+  canvas.inkMode {
+    filter: grayscale(1) contrast(1.12) sepia(0.08);
+  }
+
+  .menu {
     position: fixed;
-    top: 12px;
-    left: 12px;
+    top: 16px;
+    right: 16px;
     z-index: 10;
+  }
+
+  #menuButton {
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(36, 33, 28, 0.12);
+    border-radius: 50%;
+    background: rgba(255, 252, 246, 0.58);
+    color: #24211c;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 8px 24px rgba(30, 28, 24, 0.1);
+    backdrop-filter: blur(10px);
+    transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  }
+
+  #menuButton:hover,
+  #menuButton[aria-expanded="true"] {
+    background: rgba(255, 252, 246, 0.86);
+    box-shadow: 0 10px 26px rgba(30, 28, 24, 0.16);
+  }
+
+  #menuButton:active {
+    transform: scale(0.96);
+  }
+
+  #menuButton span,
+  #menuButton::before,
+  #menuButton::after {
+    content: "";
+    width: 17px;
+    height: 1.5px;
+    border-radius: 999px;
+    background: currentColor;
+    display: block;
+    transition: transform 160ms ease, opacity 160ms ease;
+  }
+
+  #menuButton[aria-expanded="true"]::before {
+    transform: translateY(5.5px) rotate(45deg);
+  }
+
+  #menuButton[aria-expanded="true"] span {
+    opacity: 0;
+  }
+
+  #menuButton[aria-expanded="true"]::after {
+    transform: translateY(-5.5px) rotate(-45deg);
+  }
+
+  .menuPanel {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    min-width: 176px;
+    padding: 10px;
+    border: 1px solid rgba(36, 33, 28, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 252, 246, 0.72);
+    box-shadow: 0 14px 34px rgba(30, 28, 24, 0.14);
+    backdrop-filter: blur(12px);
+    display: grid;
+    gap: 9px;
+  }
+
+  .menuPanel[hidden] {
+    display: none;
+  }
+
+  .toggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #24211c;
+    font: 13px/1.3 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-flex;
+    width: 52px;
+    height: 30px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff5050, #5090ff, #50c878);
+    cursor: pointer;
+    transition: background 160ms ease;
+  }
+
+  .slider::before {
+    content: "";
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    left: 3px;
+    top: 3px;
+    border-radius: 50%;
+    background: #fffaf2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+    transition: transform 160ms ease;
+  }
+
+  .switch input:checked + .slider {
+    background: linear-gradient(90deg, #171615, #4b4842);
+  }
+
+  .switch input:checked + .slider::before {
+    transform: translateX(22px);
+  }
+
+  #saveButton {
+    width: 100%;
+    border: 1px solid rgba(36, 33, 28, 0.1);
+    border-radius: 8px;
+    background: rgba(36, 33, 28, 0.88);
+    color: #fffaf2;
+    cursor: pointer;
     padding: 8px 14px;
-    font-size: 14px;
+    font-size: 13px;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+
+  #saveButton:hover {
+    background: #24211c;
+  }
+
+  #saveButton:active {
+    transform: translateY(1px);
   }
 </style>
 </head>
 <body>
-<button id="saveButton">save</button>
+<div class="menu">
+  <button id="menuButton" type="button" aria-label="メニュー" aria-expanded="false" aria-controls="menuPanel">
+    <span></span>
+  </button>
+  <div id="menuPanel" class="menuPanel" hidden>
+    <label class="toggleRow">
+      <span id="modeLabel">Color</span>
+      <span class="switch">
+        <input id="toneToggle" type="checkbox" aria-label="モノクロ切り替え" />
+        <span class="slider"></span>
+      </span>
+    </label>
+    <button id="saveButton" type="button">save</button>
+  </div>
+</div>
 <canvas id="canvas"></canvas>
 
 <script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const menuButton = document.getElementById("menuButton");
+const menuPanel = document.getElementById("menuPanel");
+const toneToggle = document.getElementById("toneToggle");
+const modeLabel = document.getElementById("modeLabel");
+let isMonochrome = false;
 
 function resize() {
   canvas.width = window.innerWidth;
@@ -144,7 +308,7 @@ function loop() {
 }
 loop();
 
-const colors = [
+const colorPalette = [
   "rgba(255, 80, 80, 0.85)",
   "rgba(80, 140, 255, 0.85)",
   "rgba(255, 200, 50, 0.85)",
@@ -152,11 +316,20 @@ const colors = [
   "rgba(180, 90, 220, 0.85)"
 ];
 
+const inkPalette = [
+  "rgba(12, 12, 11, 0.88)",
+  "rgba(31, 30, 28, 0.82)",
+  "rgba(54, 52, 48, 0.74)",
+  "rgba(85, 82, 75, 0.62)",
+  "rgba(0, 0, 0, 0.7)"
+];
+
 canvas.addEventListener("click", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-  const color = colors[Math.floor(Math.random() * colors.length)];
+  const palette = isMonochrome ? inkPalette : colorPalette;
+  const color = palette[Math.floor(Math.random() * palette.length)];
   drawSplash(x, y, color);
 });
 
@@ -176,14 +349,40 @@ function getTimestamp() {
 function saveCanvas() {
   const timestamp = getTimestamp();
   const filename = `paint_wall_${timestamp}.png`;
+  const exportCanvas = document.createElement("canvas");
+  const exportCtx = exportCanvas.getContext("2d");
+
+  exportCanvas.width = canvas.width;
+  exportCanvas.height = canvas.height;
+  exportCtx.filter = isMonochrome ? "grayscale(1) contrast(1.12) sepia(0.08)" : "none";
+  exportCtx.drawImage(canvas, 0, 0);
 
   const link = document.createElement("a");
   link.download = filename;
-  link.href = canvas.toDataURL("image/png");
+  link.href = exportCanvas.toDataURL("image/png");
   link.click();
 }
 
 document.getElementById("saveButton").addEventListener("click", saveCanvas);
+
+menuButton.addEventListener("click", () => {
+  const isOpen = menuPanel.hidden;
+  menuPanel.hidden = !isOpen;
+  menuButton.setAttribute("aria-expanded", String(isOpen));
+});
+
+toneToggle.addEventListener("change", () => {
+  isMonochrome = toneToggle.checked;
+  modeLabel.textContent = isMonochrome ? "Monochrome" : "Color";
+  canvas.classList.toggle("inkMode", isMonochrome);
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".menu")) {
+    menuPanel.hidden = true;
+    menuButton.setAttribute("aria-expanded", "false");
+  }
+});
 
 </script>
 </body>
