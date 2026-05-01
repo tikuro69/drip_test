@@ -9,6 +9,10 @@ The paint spreads, splatters, and slowly drips down the wall.
 
 This project is a simple browser-based visual test.
 
+## Live Demo
+
+https://tikuro69.github.io/drip_test/
+
 ## Features
 
 - Paint splash effect on click
