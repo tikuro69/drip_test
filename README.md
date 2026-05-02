@@ -30,5 +30,6 @@ Open `index.html` in a web browser.
 
 ```bash
 open index.html
+```
 
 ![Paint wall sample](paint_wall_20260503_025124.png)
