@@ -9,6 +9,8 @@ The paint spreads, splatters, and slowly drips down the wall.
 
 This project is a simple browser-based visual test.
 
+![Paint wall sample](paint_wall_20260503_024335.png)
+
 ## Live Demo
 
 https://tikuro69.github.io/drip_test/
